@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vehicle Specs Registry - Audi Showroom</title>
+    <!-- Bootstrap CSS for layout support -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- Premium Google Fonts and custom CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-audi">
+        <div class="container-fluid">
+            <a class="navbar-brand navbar-brand-audi" th:href="@{/}">
+                AUDI<span>SHOWROOM</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="container main-content">
+        
+        <div class="card-audi-form">
+            <h2 class="text-center fw-bold mb-4" th:text="${car.id != null} ? 'Update Vehicle Specifications' : 'Register New Vehicle'">Register New Vehicle</h2>
+            
+            <form th:action="@{/cars/save}" th:object="${car}" method="post">
+                <!-- Hidden input for ID (if updating) -->
+                <input type="hidden" th:field="*{id}">
+
+                <div class="mb-3">
+                    <label class="form-label form-label-audi">Vehicle Model Name</label>
+                    <input type="text" class="form-control form-control-audi" th:field="*{model}" 
+                           placeholder="e.g., Audi RS e-tron GT" required>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label form-label-audi">Model Year</label>
+                        <input type="number" class="form-control form-control-audi" th:field="*{year}" 
+                               placeholder="e.g., 2024" min="1900" max="2100" required>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label form-label-audi">MSRP ($)</label>
+                        <input type="number" class="form-control form-control-audi" th:field="*{price}" 
+                               placeholder="e.g., 147100" min="0" step="any" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label form-label-audi">Exterior Color</label>
+                    <input type="text" class="form-control form-control-audi" th:field="*{color}" 
+                           placeholder="e.g., Tactical Green Metallic" required>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label form-label-audi">Image URL</label>
+                    <input type="url" class="form-control form-control-audi" th:field="*{imageUrl}" 
+                           placeholder="e.g., https://images.unsplash.com/photo-..." 
+                           help="Provide an Unsplash or direct image URL for the showroom display.">
+                    <div class="form-text text-secondary mt-1" style="font-size: 0.8rem;">Leave blank to use a default premium vehicle placeholder.</div>
+                </div>
+
+                <!-- Submit buttons -->
+                <div class="d-flex gap-3 justify-content-end">
+                    <a th:href="@{/}" class="btn-audi-outline px-4">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn-audi-primary px-4">
+                        Save Vehicle
+                    </button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer-audi">
+        &copy; 2026 Audi Showroom &bull; Engineered & Containerized with <span>&hearts;</span> on Kubernetes
+    </footer>
+
+</body>
+</html>

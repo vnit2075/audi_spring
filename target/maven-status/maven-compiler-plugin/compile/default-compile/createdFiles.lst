@@ -1,0 +1,4 @@
+com/audi/car/model/Car.class
+com/audi/car/AudiApplication.class
+com/audi/car/repository/CarRepository.class
+com/audi/car/controller/CarController.class

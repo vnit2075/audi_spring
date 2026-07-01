@@ -1,0 +1,46 @@
+version: "3.9"
+
+networks:
+  audi-network:
+    driver: bridge
+
+services:
+
+  # ---------- MySQL Database Service ----------
+  audi-mysql:
+    image: mysql:8.3
+    container_name: audi-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: audi_db
+    ports:
+      - "3306:3306"
+    volumes:
+      - audi-mysql-volume:/var/lib/mysql
+    networks:
+      - audi-network
+
+  # ---------- Audi Spring Boot App Service ----------
+  audi-showroom-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: audi-showroom-app
+    restart: always
+    depends_on:
+      - audi-mysql
+    environment:
+      APP_NAME: "audi-showroom"
+      DB_URL: "jdbc:mysql://audi-mysql:3306/audi_db?createDatabaseIfNotExist=true&allowPublicKeyRetrieval=true&useSSL=false"
+      DB_USERNAME: "root"
+      DB_PASSWORD: "root"
+      SERVER_PORT: "8088"
+      JPA_DDL_AUTO: "update"
+    ports:
+      - "8088:8088"
+    networks:
+      - audi-network
+
+volumes:
+  audi-mysql-volume:

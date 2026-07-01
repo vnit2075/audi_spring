@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audi Showroom</title>
+    <!-- Bootstrap CSS for layout support -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <!-- Premium Google Fonts and custom CSS -->
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+    <!-- Header Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-audi">
+        <div class="container-fluid d-flex justify-content-between align-items-center">
+            <a class="navbar-brand navbar-brand-audi" href="#">
+                AUDI<span>SHOWROOM</span>
+            </a>
+            <div class="active-badge d-none d-sm-block">
+                <span class="badge bg-success py-2 px-3 border border-dark rounded-pill">Cluster Node: Active</span>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content Grid -->
+    <div class="container main-content">
+        <h1 class="showroom-title">Premium Fleet</h1>
+
+        <!-- Add Car Action Bar -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="text-secondary m-0">Available Models</h4>
+            <a class="btn-audi-primary" th:href="@{/cars/add}">
+                + Register New Vehicle
+            </a>
+        </div>
+
+        <!-- Empty State if no cars found -->
+        <div class="empty-state" th:if="${#lists.isEmpty(cars)}">
+            <h3>No Vehicles in Fleet</h3>
+            <p>Our digital showroom is currently empty. Get started by adding our first performance Audi car.</p>
+            <a class="btn-audi-primary" th:href="@{/cars/add}">Add First Vehicle</a>
+        </div>
+
+        <!-- Car Cards Container -->
+        <div class="car-grid" th:unless="${#lists.isEmpty(cars)}">
+            <div class="car-card" th:each="car : ${cars}">
+                <!-- Image Wrapper -->
+                <div class="car-img-wrapper">
+                    <img th:src="${car.imageUrl}" class="car-img" th:alt="${car.model}">
+                    <span class="car-tag" th:text="${car.year}">2024</span>
+                </div>
+                
+                <!-- Details -->
+                <div class="car-details">
+                    <h3 class="car-model" th:text="${car.model}">Audi RS e-tron GT</h3>
+                    
+                    <div class="car-info-row mt-2">
+                        <span class="info-label">Color:</span>
+                        <span class="info-value" th:text="${car.color}">Tactical Green</span>
+                    </div>
+                    
+                    <!-- Pricing -->
+                    <div class="car-price">
+                        <span>$</span><th:block th:text="${#numbers.formatDecimal(car.price, 1, 'COMMAS', 0, 'POINT')}">140,000</th:block>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="car-actions">
+                        <a class="btn-audi-edit" th:href="@{'/cars/edit/' + ${car.id}}">
+                            Edit Specs
+                        </a>
+                        <a class="btn-audi-danger" th:href="@{'/cars/delete/' + ${car.id}}" 
+                           onclick="return confirm('Are you sure you want to decommission this vehicle from the showroom?')">
+                            Decommission
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer-audi">
+        &copy; 2026 Audi Showroom &bull; Engineered & Containerized with <span>&hearts;</span> on Kubernetes
+    </footer>
+
+</body>
+</html>
