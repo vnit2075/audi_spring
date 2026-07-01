@@ -2,6 +2,10 @@ pipeline {
     agent any
 
     environment {
+        // Point compilation explicitly to Java 17 (installed in Phase 1)
+        JAVA_HOME                 = '/usr/lib/jvm/java-17-openjdk-amd64'
+        PATH                      = "${env.JAVA_HOME}/bin:${env.PATH}"
+        
         DOCKER_HUB_CREDENTIALS_ID = 'dockerhub-credentials'
         DOCKER_USER                = 'vnit2075' // Change to your actual Docker Hub username
         IMAGE_NAME                 = 'audi-showroom'
@@ -12,12 +16,18 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                // Checkout code from git repository
                 checkout scm
             }
         }
 
-        stage('Build ArtifactS') {
+        stage('Verify Java Version') {
+            steps {
+                // This will print Java 17 in the console output to verify compilation toolchain
+                sh 'java -version'
+            }
+        }
+
+        stage('Build Artifact') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
@@ -25,25 +35,23 @@ pipeline {
 
         stage('Docker Build & Push') {
             steps {
-                script {
-                    docker.withRegistry('', DOCKER_HUB_CREDENTIALS_ID) {
-                        def customImage = docker.build(FULL_IMAGE_NAME)
-                        customImage.push()
-                    }
+                withCredentials([usernamePassword(credentialsId: env.DOCKER_HUB_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER_VAR', passwordVariable: 'DOCKER_PASS_VAR')]) {
+                    sh 'echo "$DOCKER_PASS_VAR" | docker login -u "$DOCKER_USER_VAR" --password-stdin'
+                    sh "docker build -t ${FULL_IMAGE_NAME} ."
+                    sh "docker push ${FULL_IMAGE_NAME}"
+                    sh 'docker logout'
                 }
             }
         }
 
         stage('Fix Manifest Mismatch') {
             steps {
-                // Fix the script's namespace.yml expectation
                 sh 'cp k8s/namespace.yaml k8s/namespace.yml || true'
             }
         }
 
         stage('Deploy MySQL Database') {
             steps {
-                // Deploy MySQL StatefulSet first (runs script that auto-locates Kubeconfig)
                 sh 'chmod +x scripts/mysql.sh'
                 sh './scripts/mysql.sh deploy'
             }
@@ -52,7 +60,6 @@ pipeline {
         stage('Blue-Green Deploy Web App') {
             steps {
                 sh 'chmod +x scripts/app.sh'
-                // Execute the blue-green script with the new image
                 sh "./scripts/app.sh deploy ${FULL_IMAGE_NAME}"
             }
         }
