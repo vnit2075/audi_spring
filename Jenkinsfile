@@ -2,9 +2,11 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_USER = 'vnit2075' // <-- Replace with your Docker Hub username
+        // Change to your actual Docker Hub username
+        DOCKER_HUB_USER = 'vnit2075' 
         IMAGE_NAME      = 'audi-showroom'
         IMAGE_TAG       = "${DOCKER_HUB_USER}/${IMAGE_NAME}:${BUILD_NUMBER}"
+        // Kubeconfig path on Jenkins host
         KUBECONFIG_PATH = '/var/lib/jenkins/kubeconfig.yml'
     }
 
@@ -25,7 +27,8 @@ pipeline {
         stage('Login to Docker Hub') {
             steps {
                 echo 'Logging into Docker Hub...'
-                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                // Using your existing Jenkins Credential ID 'dockerhub-credentials'
+                withCredentials([usernamePassword(credentialsId: 'dockerhub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
                     sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
                 }
             }
@@ -33,7 +36,7 @@ pipeline {
 
         stage('Push Image to Docker Hub') {
             steps {
-                echo 'Pushing Docker image to registry...'
+                echo "Pushing Docker image ${IMAGE_TAG} to registry..."
                 sh "docker push ${IMAGE_TAG}"
             }
         }
@@ -55,7 +58,7 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up Docker images locally...'
+            echo 'Cleaning up local Docker images...'
             sh "docker rmi ${IMAGE_TAG} || true"
             sh "docker logout || true"
         }
