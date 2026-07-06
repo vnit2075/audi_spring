@@ -2,75 +2,68 @@ pipeline {
     agent any
 
     environment {
-        // Point compilation explicitly to Java 17 (installed in Phase 1)
-        JAVA_HOME                 = '/usr/lib/jvm/java-17-openjdk-amd64'
-        PATH                      = "${env.JAVA_HOME}/bin:${env.PATH}"
-        
-        DOCKER_HUB_CREDENTIALS_ID = 'dockerhub-credentials'
-        DOCKER_USER                = 'vnit2075' // Change to your actual Docker Hub username
-        IMAGE_NAME                 = 'audi-showroom'
-        IMAGE_TAG                  = "${BUILD_NUMBER}"
-        FULL_IMAGE_NAME            = "${DOCKER_USER}/${IMAGE_NAME}:${IMAGE_TAG}"
+        DOCKER_HUB_USER = 'vnit2075' // <-- Replace with your Docker Hub username
+        IMAGE_NAME      = 'audi-showroom'
+        IMAGE_TAG       = "${DOCKER_HUB_USER}/${IMAGE_NAME}:${BUILD_NUMBER}"
+        KUBECONFIG_PATH = '/var/lib/jenkins/kubeconfig.yml'
     }
 
     stages {
-        stage('Checkout') {
+        stage('Checkout Code') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Verify Java Version') {
+        stage('Build Docker Image') {
             steps {
-                // This will print Java 17 in the console output to verify compilation toolchain
-                sh 'java -version'
+                echo 'Building Docker image...'
+                sh "docker build -t ${IMAGE_TAG} ."
             }
         }
 
-        stage('Build Artifact') {
+        stage('Login to Docker Hub') {
             steps {
-                sh 'mvn clean package -DskipTests'
-            }
-        }
-
-        stage('Docker Build & Push') {
-            steps {
-                withCredentials([usernamePassword(credentialsId: env.DOCKER_HUB_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER_VAR', passwordVariable: 'DOCKER_PASS_VAR')]) {
-                    sh 'echo "$DOCKER_PASS_VAR" | docker login -u "$DOCKER_USER_VAR" --password-stdin'
-                    sh "docker build -t ${FULL_IMAGE_NAME} ."
-                    sh "docker push ${FULL_IMAGE_NAME}"
-                    sh 'docker logout'
+                echo 'Logging into Docker Hub...'
+                withCredentials([usernamePassword(credentialsId: 'docker-hub-credentials', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
                 }
             }
         }
 
-        stage('Fix Manifest Mismatch') {
+        stage('Push Image to Docker Hub') {
             steps {
-                sh 'cp k8s/namespace.yaml k8s/namespace.yml || true'
+                echo 'Pushing Docker image to registry...'
+                sh "docker push ${IMAGE_TAG}"
             }
         }
 
-        stage('Deploy MySQL Database') {
+        stage('Deploy Database') {
             steps {
-                sh 'chmod +x scripts/mysql.sh'
-                sh './scripts/mysql.sh deploy'
+                echo 'Deploying MySQL database to Kubernetes...'
+                sh "export KUBECONFIG=${KUBECONFIG_PATH} && ./scripts/mysql.sh deploy"
             }
         }
 
-        stage('Blue-Green Deploy Web App') {
+        stage('Blue-Green Deployment') {
             steps {
-                sh 'chmod +x scripts/app.sh'
-                sh "./scripts/app.sh deploy ${FULL_IMAGE_NAME}"
+                echo 'Executing Blue-Green deployment swap...'
+                sh "export KUBECONFIG=${KUBECONFIG_PATH} && ./scripts/app.sh deploy ${IMAGE_TAG}"
             }
         }
     }
 
     post {
+        always {
+            echo 'Cleaning up Docker images locally...'
+            sh "docker rmi ${IMAGE_TAG} || true"
+            sh "docker logout || true"
+        }
         success {
-            echo "Successfully deployed version ${IMAGE_TAG} to Kubernetes!"
+            echo 'Deployment completed successfully!'
         }
         failure {
-            echo "Deployment failed. Please check build logs."
+            echo 'Deployment failed. Please check logs.'
         }
     }
 }
